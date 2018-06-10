@@ -3,3 +3,4 @@ rpms
 *.sqlite
 *.bz2
 *.gz
+*.iml

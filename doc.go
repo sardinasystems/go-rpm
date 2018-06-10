@@ -5,7 +5,7 @@ A native implementation of the RPM file specification in Go.
 
 	import (
 		"fmt"
-		"github.com/cavaliercoder/go-rpm"
+		"github.com/jfrog/go-rpm"
 	)
 
 	func main() {

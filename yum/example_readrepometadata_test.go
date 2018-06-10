@@ -2,7 +2,7 @@ package yum_test
 
 import (
 	"fmt"
-	"github.com/cavaliercoder/go-rpm/yum"
+	"github.com/jfrog/go-rpm/yum"
 	"net/http"
 )
 

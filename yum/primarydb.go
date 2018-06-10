@@ -3,7 +3,7 @@ package yum
 import (
 	"database/sql"
 	"fmt"
-	"github.com/cavaliercoder/go-rpm"
+	"github.com/jfrog/go-rpm"
 	_ "github.com/mattn/go-sqlite3"
 	"os"
 )
