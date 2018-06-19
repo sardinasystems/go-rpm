@@ -103,9 +103,10 @@ func ReadPackageHeader(r io.Reader) (*Header, error) {
 	// This test is not entirely precise as h.Length also includes the value
 	// store. It should at least help eliminate excessive buffer allocations for
 	// corrupted length values in the > h.Length ranges.
-	if h.IndexCount*16 > h.Length {
+	// this check has been commented as it failing on a non corrupted file
+	/*if h.IndexCount*16 > h.Length {
 		return nil, ErrBadIndexCount
-	}
+	}*/
 
 	h.Indexes = make(IndexEntries, h.IndexCount)
 
