@@ -103,7 +103,7 @@ func ReadPackageHeader(r io.Reader) (*Header, error) {
 	// This test is not entirely precise as h.Length also includes the value
 	// store. It should at least help eliminate excessive buffer allocations for
 	// corrupted length values in the > h.Length ranges.
-	if h.IndexCount*16 > h.Length {
+	if h.IndexCount*16 > MAX_HEADER_SIZE {
 		return nil, ErrBadIndexCount
 	}
 
