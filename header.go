@@ -71,8 +71,6 @@ func ReadPackageHeader(r io.Reader) (*Header, error) {
 		return nil, ErrBadHeaderLength
 	}
 	if h.IndexCount*r_IndexHeaderLength > r_MaxHeaderSize {
-		return nil, ErrBadIndexCount
-	}
 
 	// read indexes
 	h.Indexes = make(IndexEntries, h.IndexCount)
