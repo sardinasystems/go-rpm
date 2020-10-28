@@ -1,4 +1,9 @@
-package rpm
+/*
+Package version provides functions for comparing RPM package versions.
+This implementation is tested for correctness by passing the same inputs to the
+original implementation.
+*/
+package version
 
 import (
 	"math"
@@ -9,9 +14,18 @@ import (
 
 // alphanumPattern is a regular expression to match all sequences of numeric
 // characters or alphanumeric characters.
-var alphanumPattern = regexp.MustCompile("([a-zA-Z]+)|([0-9]+)")
+var alphanumPattern = regexp.MustCompile("([a-zA-Z]+)|([0-9]+)|(~)")
 
-// VersionCompare compares the version details of two packages. Versions are
+// Interface is an interface which holds version information for a single
+// package.
+type Interface interface {
+	Name() string
+	Epoch() int
+	Version() string
+	Release() string
+}
+
+// Compare compares the version details of two packages. Versions are
 // compared by Epoch, Version and Release in descending order of precedence.
 //
 // If a is more recent than b, 1 is returned. If a is less recent than b, -1 is
@@ -19,7 +33,7 @@ var alphanumPattern = regexp.MustCompile("([a-zA-Z]+)|([0-9]+)")
 //
 // This function does not consider if the two packages have the same name or if
 // either package has been made obsolete by the other.
-func VersionCompare(a PackageVersion, b PackageVersion) int {
+func Compare(a, b Interface) int {
 	// compare nils
 	if a == nil && b == nil {
 		return 0
@@ -35,9 +49,8 @@ func VersionCompare(a PackageVersion, b PackageVersion) int {
 	if ae != be {
 		if ae > be {
 			return 1
-		} else {
-			return -1
 		}
+		return -1
 	}
 
 	// compare version
@@ -47,19 +60,6 @@ func VersionCompare(a PackageVersion, b PackageVersion) int {
 
 	// compare release
 	return rpmvercmp(a.Release(), b.Release())
-}
-
-// LatestPackage returns the package with the highest version in the given slice
-// of PackageVersions.
-func LatestPackage(v ...PackageVersion) PackageVersion {
-	var latest PackageVersion
-	for _, p := range v {
-		if 1 == VersionCompare(p, latest) {
-			latest = p
-		}
-	}
-
-	return latest
 }
 
 // rpmcmpver compares two version or release strings.
@@ -77,12 +77,20 @@ func rpmvercmp(a, b string) int {
 	segsb := alphanumPattern.FindAllString(b, -1)
 	segs := int(math.Min(float64(len(segsa)), float64(len(segsb))))
 
-	// TODO: handle tildes in rpmvercmp
-
 	// compare each segment
 	for i := 0; i < segs; i++ {
 		a := segsa[i]
 		b := segsb[i]
+
+		// compare tildes
+		if []rune(a)[0] == '~' || []rune(b)[0] == '~' {
+			if []rune(a)[0] != '~' {
+				return 1
+			}
+			if []rune(b)[0] != '~' {
+				return -1
+			}
+		}
 
 		if unicode.IsNumber([]rune(a)[0]) {
 			// numbers are always greater than alphas
@@ -120,10 +128,16 @@ func rpmvercmp(a, b string) int {
 		return 0
 	}
 
+	// If there is a tilde in a segment past the min number of segments, find it.
+	if len(segsa) > segs && []rune(segsa[segs])[0] == '~' {
+		return -1
+	} else if len(segsb) > segs && []rune(segsb[segs])[0] == '~' {
+		return 1
+	}
+
 	// whoever has the most segments wins
 	if len(segsa) > len(segsb) {
 		return 1
-	} else {
-		return -1
 	}
+	return -1
 }

@@ -4,3 +4,7 @@ rpms
 *.bz2
 *.gz
 *.iml
+*.zip
+*.yml
+*.yaml
+.fuzz/

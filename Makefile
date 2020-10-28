@@ -1,20 +1,23 @@
-all: build
+PACKAGE = github.com/cavaliercoder/go-rpm
 
-build:
-	go build -x
+all: check install
 
-test:
-	go test -v -cover && cd yum && go test -v -cover
+check:
+	go test -v $(PACKAGE)/...
+
+install:
+	go install -x $(PACKAGE)/...
+
+clean: clean-fuzz
+	go clean -x -i $(PACKAGE)/...
 
 get-deps:
 	go get github.com/cavaliercoder/badio
-	go get github.com/dvyukov/go-fuzz/go-fuzz
-	go get github.com/dvyukov/go-fuzz/go-fuzz-build
-	go get github.com/mattn/go-sqlite3
+	go get github.com/cavaliercoder/go-cpio
 	go get golang.org/x/crypto/openpgp
 
 rpm-fuzz.zip: *.go
-	go-fuzz-build github.com/cavaliercoder/go-rpm
+	go-fuzz-build $(PACKAGE)
 
 fuzz: rpm-fuzz.zip
 	go-fuzz -bin=./rpm-fuzz.zip -workdir=.fuzz/
@@ -22,6 +25,8 @@ fuzz: rpm-fuzz.zip
 clean-fuzz:
 	rm -rf rpm-fuzz.zip .fuzz/crashers/* .fuzz/suppressions/*
 
-clean: clean-fuzz
+get-fuzz-deps:
+	go get github.com/dvyukov/go-fuzz/go-fuzz-build
+	go get github.com/dvyukov/go-fuzz/go-fuzz
 
-.PHONY: all build test get-deps fuzz clean-fuzz clean
+.PHONY: all check install clean get-deps fuzz clean-fuzz get-fuzz-deps

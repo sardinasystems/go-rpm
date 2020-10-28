@@ -1,4 +1,4 @@
-# go-rpm [![Build Status](https://travis-ci.org/cavaliercoder/go-rpm.svg?branch=master)](https://travis-ci.org/cavaliercoder/go-rpm) [![GoDoc](https://godoc.org/github.com/cavaliercoder/go-rpm?status.svg)](https://godoc.org/github.com/cavaliercoder/go-rpm)
+# go-rpm [![GoDoc](https://godoc.org/github.com/cavaliercoder/go-rpm?status.svg)](https://godoc.org/github.com/cavaliercoder/go-rpm) [![Build Status](https://travis-ci.org/cavaliercoder/go-rpm.svg?branch=master)](https://travis-ci.org/cavaliercoder/go-rpm) [![Go Report Card](https://goreportcard.com/badge/github.com/cavaliercoder/go-rpm)](https://goreportcard.com/report/github.com/cavaliercoder/go-rpm)
 
 A native implementation of the RPM file specification in Go.
 
@@ -24,34 +24,41 @@ import (
 )
 
 func main() {
-	p, err := rpm.OpenPackageFile("my-package.rpm")
+	p, err := rpm.OpenPackageFile("golang-1.6.3-2.el7.rpm")
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("Loaded package: %v", p)
+	fmt.Printf("Loaded package: %v - %s\n", p, p.Summary())
+
+	// Output: golang-0:1.6.3-2.el7.x86_64 - The Go Programming Language
 }
 ```
 
+## Tools
 
-## License
+This package also includes two tools `rpmdump` and `rpminfo`.
 
-Copyright (c) 2015 Ryan Armstrong 
+The code for both tools demonstrates some use-cases of this package. They are
+both also useful for interrogating RPM packages on any platform.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+```
+$ rpminfo golang-1.6.3-2.el7.x86_64.rpm
+Name        : golang
+Version     : 1.6.3
+Release     : 2.el7
+Architecture: x86_64
+Group       : Unspecified
+Size        : 11809071
+License     : BSD and Public Domain
+Signature   : RSA/SHA256, Sun Nov 20 18:01:16 2016, Key ID 24c6a8a7f4a80eb5
+Source RPM  : golang-1.6.3-2.el7.src.rpm
+Build Date  : Tue Nov 15 12:20:30 2016
+Build Host  : c1bm.rdu2.centos.org
+Packager    : CentOS BuildSystem <http://bugs.centos.org>
+Vendor      : CentOS
+URL         : http://golang.org/
+Summary     : The Go Programming Language
+Description :
+The Go Programming Language.
+```
