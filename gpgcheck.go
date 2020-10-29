@@ -4,16 +4,74 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
+	"io"
+	"io/ioutil"
+
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/errors"
-	"io"
+	"golang.org/x/crypto/openpgp/packet"
 )
 
-// Signature storage types (as defined in package lead segment)
-const (
-	// Signature is stored in the first package header
-	RPMSIGTYPE_HEADERSIG = 5
-)
+// see: https://github.com/rpm-software-management/rpm/blob/3b1f4b0c6c9407b08620a5756ce422df10f6bd1a/rpmio/rpmpgp.c#L51
+var gpgPubkeyTbl = map[packet.PublicKeyAlgorithm]string{
+	packet.PubKeyAlgoRSA:            "RSA",
+	packet.PubKeyAlgoRSASignOnly:    "RSA(Sign-Only)",
+	packet.PubKeyAlgoRSAEncryptOnly: "RSA(Encrypt-Only)",
+	packet.PubKeyAlgoElGamal:        "Elgamal",
+	packet.PubKeyAlgoDSA:            "DSA",
+	packet.PubKeyAlgoECDH:           "Elliptic Curve",
+	packet.PubKeyAlgoECDSA:          "ECDSA",
+}
+
+// Map Go hashes to rpm info name
+// See: https://golang.org/src/crypto/crypto.go?s=#L23
+//      https://github.com/rpm-software-management/rpm/blob/3b1f4b0c6c9407b08620a5756ce422df10f6bd1a/rpmio/rpmpgp.c#L88
+var gpgHashTbl = []string{
+	"Unknown hash algorithm",
+	"MD4",
+	"MD5",
+	"SHA1",
+	"SHA224",
+	"SHA256",
+	"SHA384",
+	"SHA512",
+	"MD5SHA1",
+	"RIPEMD160",
+	"SHA3_224",
+	"SHA3_256",
+	"SHA3_384",
+	"SHA3_512",
+	"SHA512_224",
+	"SHA512_256",
+}
+
+// GPGSignature is the raw byte representation of a package's signature.
+type GPGSignature []byte
+
+func (b GPGSignature) String() string {
+	pkt, err := packet.Read(bytes.NewReader(b))
+	if err != nil {
+		return ""
+	}
+
+	switch sig := pkt.(type) {
+	case *packet.SignatureV3:
+		algo, ok := gpgPubkeyTbl[sig.PubKeyAlgo]
+		if !ok {
+			algo = "Unknown public key algorithm"
+		}
+
+		hasher := gpgHashTbl[0]
+		if int(sig.Hash) < len(gpgHashTbl) {
+			hasher = gpgHashTbl[sig.Hash]
+		}
+
+		ctime := sig.CreationTime.UTC().Format(RPMDate)
+		return fmt.Sprintf("%v/%v, %v, Key ID %x", algo, hasher, ctime, sig.IssuerKeyId)
+	}
+
+	return ""
+}
 
 // Predefined checksum errors.
 var (
@@ -24,28 +82,38 @@ var (
 	// ErrGPGValidationFailed indicates that a RPM package failed GPG signature
 	// validation.
 	ErrGPGValidationFailed = fmt.Errorf("GPG signature validation failed")
+
+	// ErrGPGUnknownSignature indicates that the RPM package signature tag is of
+	// an unknown type.
+	ErrGPGUnknownSignature = fmt.Errorf("unknown signature type")
 )
 
 // rpmReadSigHeader reads the lead and signature header of a rpm package and
 // returns a pointer to the signature header.
 func rpmReadSigHeader(r io.Reader) (*Header, error) {
 	// read package lead
-	if lead, err := ReadPackageLead(r); err != nil {
-		return nil, err
-	} else {
-		// check signature type
-		if lead.SignatureType != RPMSIGTYPE_HEADERSIG {
-			return nil, fmt.Errorf("Unsupported signature type: 0x%x", lead.SignatureType)
-		}
-	}
-
-	// read signature header
-	sigheader, err := ReadPackageHeader(r)
+	lead, err := ReadPackageLead(r)
 	if err != nil {
 		return nil, err
 	}
 
-	return sigheader, nil
+	// check signature type
+	if lead.SignatureType != 5 { // RPMSIGTYPE_HEADERSIG
+		return nil, fmt.Errorf("Unsupported signature type: 0x%x", lead.SignatureType)
+	}
+
+	// read signature header
+	hdr, err := ReadPackageHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// pad to next header
+	if _, err := io.CopyN(ioutil.Discard, r, int64(8-(hdr.Length%8))%8); err != nil {
+		return nil, err
+	}
+
+	return hdr, nil
 }
 
 // GPGCheck validates the integrity of a RPM package file read from the given
@@ -63,9 +131,15 @@ func GPGCheck(r io.Reader, keyring openpgp.KeyRing) (string, error) {
 		return "", err
 	}
 
+	tags := []int{
+		1002, // RPMSIGTAG_PGP
+		1006, // RPMSIGTAG_PGP5
+		1005, // RPMSIGTAG_GPG
+	}
+
 	// get signature bytes
-	var sigval []byte = nil
-	for _, tag := range []int{RPMSIGTAG_PGP, RPMSIGTAG_PGP5, RPMSIGTAG_GPG} {
+	var sigval []byte
+	for _, tag := range tags {
 		if sigval = sigheader.Indexes.BytesByTag(tag); sigval != nil {
 			break
 		}
@@ -84,7 +158,7 @@ func GPGCheck(r io.Reader, keyring openpgp.KeyRing) (string, error) {
 	}
 
 	// get signer identity
-	for id, _ := range signer.Identities {
+	for id := range signer.Identities {
 		return id, nil
 	}
 
@@ -107,13 +181,13 @@ func MD5Check(r io.Reader) error {
 	}
 
 	// get expected payload size
-	payloadSize := sigheader.Indexes.IntByTag(RPMSIGTAG_SIZE)
+	payloadSize := sigheader.Indexes.IntByTag(1000) // RPMSIGTAG_SIZE
 	if payloadSize == 0 {
 		return fmt.Errorf("RPMSIGTAG_SIZE tag not found in signature header")
 	}
 
 	// get expected payload md5 sum
-	sigmd5 := sigheader.Indexes.BytesByTag(RPMSIGTAG_MD5)
+	sigmd5 := sigheader.Indexes.BytesByTag(1004) // RPMSIGTAG_MD5
 	if sigmd5 == nil {
 		return fmt.Errorf("RPMSIGTAG_MD5 tag not found in signature header")
 	}

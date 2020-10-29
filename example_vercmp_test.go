@@ -2,7 +2,8 @@ package rpm_test
 
 import (
 	"fmt"
-	"github.com/cavaliercoder/go-rpm"
+	"github.com/jfrog/go-rpm"
+	"github.com/jfrog/go-rpm/version"
 	"io/ioutil"
 	"strings"
 )
@@ -17,7 +18,7 @@ func ExampleVersionCompare() {
 	}
 
 	// test each package file
-	var latest rpm.Package = nil
+	var latest *rpm.PackageFile = nil
 	for _, f := range dir {
 		if strings.HasSuffix(f.Name(), ".rpm") {
 			// read package file
@@ -27,7 +28,7 @@ func ExampleVersionCompare() {
 			}
 
 			// compare versions
-			if 1 == rpm.VersionCompare(pkg, latest) {
+			if 1 == version.Compare(pkg, latest) {
 				latest = pkg
 			}
 		}
