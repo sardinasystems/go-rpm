@@ -5,8 +5,6 @@ import (
 	"math"
 	"os"
 	"strings"
-
-	"github.com/cavaliercoder/go-rpm"
 )
 
 func main() {

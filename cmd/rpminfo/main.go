@@ -6,8 +6,6 @@ import (
 	"strings"
 	"text/template"
 	"time"
-
-	"github.com/cavaliercoder/go-rpm"
 )
 
 // Signature see:
