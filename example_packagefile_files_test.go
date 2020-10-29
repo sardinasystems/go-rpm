@@ -3,7 +3,7 @@ package rpm_test
 import (
 	"fmt"
 
-	"github.com/cavaliercoder/go-rpm"
+	"github.com/jfrog/go-rpm/v2"
 )
 
 // Lists all the files in a RPM package.

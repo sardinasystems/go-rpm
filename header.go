@@ -72,150 +72,150 @@ func ReadPackageHeader(r io.Reader) (*Header, error) {
 	}
 	if h.IndexCount*r_IndexHeaderLength > r_MaxHeaderSize {
 
-	// read indexes
-	h.Indexes = make(IndexEntries, h.IndexCount)
-	indexLength := r_IndexHeaderLength * h.IndexCount
-	buf = make([]byte, indexLength)
-	_, err = io.ReadFull(r, buf)
-	if err != nil {
-		return nil, err
-	}
-	for x := 0; x < h.IndexCount; x++ {
-		ib := buf[r_IndexHeaderLength*x:]
-		h.Indexes[x] = IndexEntry{
-			Tag:       int(binary.BigEndian.Uint32(ib[:4])),
-			Type:      int(binary.BigEndian.Uint32(ib[4:8])),
-			Offset:    int(binary.BigEndian.Uint32(ib[8:12])),
-			ItemCount: int(binary.BigEndian.Uint32(ib[12:16])),
+		// read indexes
+		h.Indexes = make(IndexEntries, h.IndexCount)
+		indexLength := r_IndexHeaderLength * h.IndexCount
+		buf = make([]byte, indexLength)
+		_, err = io.ReadFull(r, buf)
+		if err != nil {
+			return nil, err
 		}
-		if h.Indexes[x].Offset >= h.Length {
-			return nil, ErrIndexOutOfRange
-		}
-	}
-
-	// read the "store"
-	buf = make([]byte, h.Length)
-	_, err = io.ReadFull(r, buf)
-	if err != nil {
-		return nil, err
-	}
-
-	// parse the value of each index from the store
-	for x := 0; x < h.IndexCount; x++ {
-		index := h.Indexes[x]
-		o := index.Offset
-
-		switch index.Type {
-		case IndexDataTypeChar:
-			vals := make([]uint8, index.ItemCount)
-			for v := 0; v < index.ItemCount; v++ {
-				if o >= len(buf) {
-					return nil, fmt.Errorf("uint8 value for index %d is out of range", x+1)
-				}
-
-				vals[v] = uint8(buf[o])
-				o++
+		for x := 0; x < h.IndexCount; x++ {
+			ib := buf[r_IndexHeaderLength*x:]
+			h.Indexes[x] = IndexEntry{
+				Tag:       int(binary.BigEndian.Uint32(ib[:4])),
+				Type:      int(binary.BigEndian.Uint32(ib[4:8])),
+				Offset:    int(binary.BigEndian.Uint32(ib[8:12])),
+				ItemCount: int(binary.BigEndian.Uint32(ib[12:16])),
 			}
-
-			index.Value = vals
-
-		case IndexDataTypeInt8:
-			vals := make([]int8, index.ItemCount)
-			for v := 0; v < index.ItemCount; v++ {
-				if o >= len(buf) {
-					return nil, fmt.Errorf("int8 value for index %d is out of range", x+1)
-				}
-
-				vals[v] = int8(buf[o])
-				o++
+			if h.Indexes[x].Offset >= h.Length {
+				return nil, ErrIndexOutOfRange
 			}
-
-			index.Value = vals
-
-		case IndexDataTypeInt16:
-			vals := make([]int16, index.ItemCount)
-			for v := 0; v < index.ItemCount; v++ {
-				if o+2 > len(buf) {
-					return nil, fmt.Errorf("int16 value for index %d is out of range", x+1)
-				}
-
-				vals[v] = int16(binary.BigEndian.Uint16(buf[o : o+2]))
-				o += 2
-			}
-
-			index.Value = vals
-
-		case IndexDataTypeInt32:
-			vals := make([]int32, index.ItemCount)
-			for v := 0; v < index.ItemCount; v++ {
-				if o+4 > len(buf) {
-					return nil, fmt.Errorf("int32 value for index %d is out of range", x+1)
-				}
-
-				vals[v] = int32(binary.BigEndian.Uint32(buf[o : o+4]))
-				o += 4
-			}
-
-			index.Value = vals
-
-		case IndexDataTypeInt64:
-			vals := make([]int64, index.ItemCount)
-			for v := 0; v < index.ItemCount; v++ {
-				if o+8 > len(buf) {
-					return nil, fmt.Errorf("int64 value for index %d is out of range", x+1)
-				}
-
-				vals[v] = int64(binary.BigEndian.Uint64(buf[o : o+8]))
-				o += 8
-			}
-
-			index.Value = vals
-
-		case IndexDataTypeBinary:
-			if o+index.ItemCount > len(buf) {
-				return nil, fmt.Errorf("[]byte value for index %d is out of range", x+1)
-			}
-
-			b := make([]byte, index.ItemCount)
-			copy(b, buf[o:o+index.ItemCount])
-
-			index.Value = b
-
-		case IndexDataTypeString, IndexDataTypeStringArray, IndexDataTypeI8NString:
-			// allow at least one byte per string
-			if o+index.ItemCount > len(buf) {
-				return nil, fmt.Errorf("[]string value for index %d is out of range", x+1)
-			}
-
-			vals := make([]string, index.ItemCount)
-
-			for s := 0; s < index.ItemCount; s++ {
-				// calculate string length
-				var j int
-				for j = 0; (o+j) < len(buf) && buf[o+j] != 0; j++ {
-				}
-
-				if j == len(buf) {
-					return nil, fmt.Errorf("string value for index %d is out of range", x+1)
-				}
-
-				vals[s] = string(buf[o : o+j])
-				o += j + 1
-			}
-
-			index.Value = vals
-
-		case IndexDataTypeNull:
-		// nothing to do here
-
-		default:
-			// unknown data type
-			return nil, ErrBadIndexType
 		}
 
-		// save in array
-		h.Indexes[x] = index
-	}
+		// read the "store"
+		buf = make([]byte, h.Length)
+		_, err = io.ReadFull(r, buf)
+		if err != nil {
+			return nil, err
+		}
 
+		// parse the value of each index from the store
+		for x := 0; x < h.IndexCount; x++ {
+			index := h.Indexes[x]
+			o := index.Offset
+
+			switch index.Type {
+			case IndexDataTypeChar:
+				vals := make([]uint8, index.ItemCount)
+				for v := 0; v < index.ItemCount; v++ {
+					if o >= len(buf) {
+						return nil, fmt.Errorf("uint8 value for index %d is out of range", x+1)
+					}
+
+					vals[v] = uint8(buf[o])
+					o++
+				}
+
+				index.Value = vals
+
+			case IndexDataTypeInt8:
+				vals := make([]int8, index.ItemCount)
+				for v := 0; v < index.ItemCount; v++ {
+					if o >= len(buf) {
+						return nil, fmt.Errorf("int8 value for index %d is out of range", x+1)
+					}
+
+					vals[v] = int8(buf[o])
+					o++
+				}
+
+				index.Value = vals
+
+			case IndexDataTypeInt16:
+				vals := make([]int16, index.ItemCount)
+				for v := 0; v < index.ItemCount; v++ {
+					if o+2 > len(buf) {
+						return nil, fmt.Errorf("int16 value for index %d is out of range", x+1)
+					}
+
+					vals[v] = int16(binary.BigEndian.Uint16(buf[o : o+2]))
+					o += 2
+				}
+
+				index.Value = vals
+
+			case IndexDataTypeInt32:
+				vals := make([]int32, index.ItemCount)
+				for v := 0; v < index.ItemCount; v++ {
+					if o+4 > len(buf) {
+						return nil, fmt.Errorf("int32 value for index %d is out of range", x+1)
+					}
+
+					vals[v] = int32(binary.BigEndian.Uint32(buf[o : o+4]))
+					o += 4
+				}
+
+				index.Value = vals
+
+			case IndexDataTypeInt64:
+				vals := make([]int64, index.ItemCount)
+				for v := 0; v < index.ItemCount; v++ {
+					if o+8 > len(buf) {
+						return nil, fmt.Errorf("int64 value for index %d is out of range", x+1)
+					}
+
+					vals[v] = int64(binary.BigEndian.Uint64(buf[o : o+8]))
+					o += 8
+				}
+
+				index.Value = vals
+
+			case IndexDataTypeBinary:
+				if o+index.ItemCount > len(buf) {
+					return nil, fmt.Errorf("[]byte value for index %d is out of range", x+1)
+				}
+
+				b := make([]byte, index.ItemCount)
+				copy(b, buf[o:o+index.ItemCount])
+
+				index.Value = b
+
+			case IndexDataTypeString, IndexDataTypeStringArray, IndexDataTypeI8NString:
+				// allow at least one byte per string
+				if o+index.ItemCount > len(buf) {
+					return nil, fmt.Errorf("[]string value for index %d is out of range", x+1)
+				}
+
+				vals := make([]string, index.ItemCount)
+
+				for s := 0; s < index.ItemCount; s++ {
+					// calculate string length
+					var j int
+					for j = 0; (o+j) < len(buf) && buf[o+j] != 0; j++ {
+					}
+
+					if j == len(buf) {
+						return nil, fmt.Errorf("string value for index %d is out of range", x+1)
+					}
+
+					vals[s] = string(buf[o : o+j])
+					o += j + 1
+				}
+
+				index.Value = vals
+
+			case IndexDataTypeNull:
+			// nothing to do here
+
+			default:
+				// unknown data type
+				return nil, ErrBadIndexType
+			}
+
+			// save in array
+			h.Indexes[x] = index
+		}
+	}
 	return h, nil
 }

@@ -2,7 +2,7 @@ package rpm_test
 
 import (
 	"fmt"
-	"github.com/jfrog/go-rpm"
+	"github.com/jfrog/go-rpm/v2"
 	"os"
 )
 
