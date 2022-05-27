@@ -2,8 +2,8 @@ package rpm_test
 
 import (
 	"fmt"
-	"github.com/jfrog/go-rpm/v2"
-	"github.com/jfrog/go-rpm/v2/version"
+	"github.com/sardinasystems/go-rpm/v2"
+	"github.com/sardinasystems/go-rpm/v2/version"
 	"io/ioutil"
 	"strings"
 )

@@ -5,7 +5,7 @@ Package rpm provides a native implementation of the RPM file specification.
 
 	import (
 		"fmt"
-		"github.com/jfrog/go-rpm"
+		"github.com/sardinasystems/go-rpm"
 	)
 
 	func main() {

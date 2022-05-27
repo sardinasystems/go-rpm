@@ -3,7 +3,7 @@ package rpm_test
 import (
 	"fmt"
 
-	"github.com/jfrog/go-rpm/v2"
+	"github.com/sardinasystems/go-rpm/v2"
 )
 
 // Lists all the files in a RPM package.

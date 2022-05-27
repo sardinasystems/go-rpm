@@ -3,7 +3,7 @@ package rpm
 import (
 	"fmt"
 
-	"github.com/jfrog/go-rpm/v2/version"
+	"github.com/sardinasystems/go-rpm/v2/version"
 )
 
 // Dependency flags indicate how versions comparisons should be computed when
