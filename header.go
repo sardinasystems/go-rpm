@@ -17,7 +17,7 @@ type Header struct {
 }
 
 const (
-	r_MaxHeaderSize      = 33554432
+	r_MaxHeaderSize      = 67108864
 	r_HeaderHeaderLength = 16
 	r_IndexHeaderLength  = 16
 )
