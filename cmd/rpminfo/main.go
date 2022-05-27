@@ -6,6 +6,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/sardinasystems/go-rpm/v2"
 )
 
 // Signature see:

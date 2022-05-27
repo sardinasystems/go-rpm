@@ -5,6 +5,8 @@ import (
 	"math"
 	"os"
 	"strings"
+
+	"github.com/sardinasystems/go-rpm/v2"
 )
 
 func main() {
